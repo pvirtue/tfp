@@ -636,6 +636,11 @@ function drawNetwork(network: nn.Node[][]): void {
   let node = network[numLayers - 1][0];
   let cy = nodeIndexScale(0) + RECT_SIZE / 2;
   node2coord[node.id] = {cx, cy};
+  // Draw the output node's box, bias and thumbnail, like the other neurons.
+  drawNode(cx, cy, node.id, false, container, node);
+  // The output node sits at the right edge, so widen the svg viewport to keep
+  // its box and bias from being clipped.
+  svg.attr("width", width + RECT_SIZE);
   // Draw links.
   for (let i = 0; i < node.inputLinks.length; i++) {
     let link = node.inputLinks[i];

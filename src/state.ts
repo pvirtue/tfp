@@ -37,15 +37,18 @@ export let regularizations: {[key: string]: nn.RegularizationFunction} = {
 /** A map between dataset names and functions that generate classification data. */
 export let datasets: {[key: string]: dataset.DataGenerator} = {
   "circle": dataset.classifyCircleData,
-  "xor": dataset.classifyXORData,
   "gauss": dataset.classifyTwoGaussData,
-  "spiral": dataset.classifySpiralData,
+  "gauss2": dataset.classifyTwoGaussDataTwo,
+  "spiral": dataset.classifySpiralData
 };
 
 /** A map between dataset names and functions that generate regression data. */
 export let regDatasets: {[key: string]: dataset.DataGenerator} = {
-  "reg-plane": dataset.regressPlane,
-  "reg-gauss": dataset.regressGaussian
+  "reg-line": dataset.regressLine,
+  "reg-quad": dataset.regressQuadratic,
+  "reg-saw": dataset.regressSawtooth,
+  "reg-class": dataset.regressTwoClassData,
+  "reg-car": dataset.regressCarData
 };
 
 export function getKeyFromValue(obj: any, value: any): string {
@@ -118,14 +121,6 @@ export class State {
     {name: "discretize", type: Type.BOOLEAN},
     {name: "percTrainData", type: Type.NUMBER},
     {name: "x", type: Type.BOOLEAN},
-    {name: "y", type: Type.BOOLEAN},
-    {name: "xTimesY", type: Type.BOOLEAN},
-    {name: "xSquared", type: Type.BOOLEAN},
-    {name: "ySquared", type: Type.BOOLEAN},
-    {name: "cosX", type: Type.BOOLEAN},
-    {name: "sinX", type: Type.BOOLEAN},
-    {name: "cosY", type: Type.BOOLEAN},
-    {name: "sinY", type: Type.BOOLEAN},
     {name: "collectStats", type: Type.BOOLEAN},
     {name: "tutorial", type: Type.STRING},
     {name: "problem", type: Type.OBJECT, keyMap: problems},
@@ -142,9 +137,9 @@ export class State {
   discretize = false;
   tutorial: string = null;
   percTrainData = 50;
-  activation = nn.Activations.TANH;
+  activation = nn.Activations.RELU;
   regularization: nn.RegularizationFunction = null;
-  problem = Problem.CLASSIFICATION;
+  problem = Problem.REGRESSION;
   initZero = false;
   hideText = false;
   collectStats = false;
@@ -152,16 +147,8 @@ export class State {
   hiddenLayerControls: any[] = [];
   networkShape: number[] = [4, 2];
   x = true;
-  y = true;
-  xTimesY = false;
-  xSquared = false;
-  ySquared = false;
-  cosX = false;
-  sinX = false;
-  cosY = false;
-  sinY = false;
   dataset: dataset.DataGenerator = dataset.classifyCircleData;
-  regDataset: dataset.DataGenerator = dataset.regressPlane;
+  regDataset: dataset.DataGenerator = dataset.regressLine;
   seed: string;
 
   /**

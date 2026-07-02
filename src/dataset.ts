@@ -72,49 +72,148 @@ export function classifyTwoGaussData(numSamples: number, noise: number):
   return points;
 }
 
-export function regressPlane(numSamples: number, noise: number):
+export function classifyTwoGaussDataTwo(numSamples: number, noise: number):
+    Example2D[] {
+  let points: Example2D[] = [];
+
+  let varianceScale = d3.scale.linear().domain([0, .5]).range([0.5, 4]);
+  let variance = varianceScale(noise);
+
+  function genGauss(cx: number, cy: number, label: number) {
+    for (let i = 0; i < numSamples / 2; i++) {
+      let x = normalRandom(cx, variance);
+      let y = normalRandom(cy, variance);
+      points.push({x, y, label});
+    }
+  }
+
+  genGauss(0, 0, -1); // Gaussian with negative examples.
+  genGauss(-2, -2, 1); // Gaussian with positive examples.
+  return points;
+}
+
+export function regressTwoClassData(numSamples: number, noise: number):
+    Example2D[] {
+  let points: Example2D[] = [];
+
+  let varianceScale = d3.scale.linear().domain([0, .5]).range([0.5, 4]);
+  let variance = varianceScale(noise);
+
+  function genGauss(cx: number, cy: number, label: number) {
+    for (let i = 0; i < numSamples / 2; i++) {
+      let x = normalRandom(cx, variance);
+      let y = normalRandom(cy, variance);
+      points.push({x, y, label});
+    }
+  }
+
+  genGauss(2, 2, 1); // Gaussian with positive examples.
+  genGauss(-2, -2, -1); // Gaussian with negative examples.
+  return points;
+}
+
+export function regressTwoClassDataTwo(numSamples: number, noise: number):
+    Example2D[] {
+  let points: Example2D[] = [];
+
+  let varianceScale = d3.scale.linear().domain([0, .5]).range([0.5, 4]);
+  let variance = varianceScale(noise);
+
+  function genGauss(cx: number, cy: number, label: number) {
+    for (let i = 0; i < numSamples / 2; i++) {
+      let x = normalRandom(cx, variance);
+      let y = normalRandom(cy, variance);
+      points.push({x, y, label});
+    }
+  }
+
+  genGauss(0, 0, -1); // Gaussian with negative examples.
+  genGauss(-2, -2, 1); // Gaussian with positive examples.
+  return points;
+}
+
+export function regressCarData(numSamples: number, noise: number):
+  Example2D[] {
+  let points: Example2D[] = [];
+  let x_array = [25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000,
+    25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000];
+  let label_array = [23000, 28000, 22000, 22000, 12500, 5500, 5000, 4000,
+    23000, 28000, 22000, 22000, 12500, 5500, 5000, 4000];
+  numSamples = label_array.length;
+  for (let i = 0; i < numSamples; i++) {
+    let x = x_array[i]*6/100000 - 5;
+    let y = 0;
+    let label = label_array[i]*2/10000;
+    points.push({x, y, label});
+  }
+  console.log(points);
+  return points;
+}
+
+
+export function regressLine(numSamples: number, noiseLevel: number):
   Example2D[] {
   let radius = 6;
   let labelScale = d3.scale.linear()
     .domain([-10, 10])
-    .range([-1, 1]);
-  let getLabel = (x, y) => labelScale(x + y);
+    .range([-10, 10]);
+  let getLabel = (x) => labelScale(-0.5*x+1);
 
   let points: Example2D[] = [];
   for (let i = 0; i < numSamples; i++) {
     let x = randUniform(-radius, radius);
-    let y = randUniform(-radius, radius);
-    let noiseX = randUniform(-radius, radius) * noise;
-    let noiseY = randUniform(-radius, radius) * noise;
-    let label = getLabel(x + noiseX, y + noiseY);
+    let y = 0;
+    // let noise = randUniform(-radius, radius) * noise;
+    let noise = normalRandom(0, 1) * noiseLevel;
+    let label = getLabel(x)+noise;
     points.push({x, y, label});
   }
   return points;
 }
 
-export function regressGaussian(numSamples: number, noise: number):
+export function regressQuadratic(numSamples: number, noiseLevel: number):
+  Example2D[] {
+  let radius = 6;
+  let labelScale = d3.scale.linear()
+    .domain([-10, 10])
+    .range([-10, 10]);
+  let getLabel = (x) => labelScale(0.5*x*x-3);
+
+  let points: Example2D[] = [];
+  for (let i = 0; i < numSamples; i++) {
+    let x = randUniform(-radius, radius);
+    let y = 0;
+    // let noise = randUniform(-radius, radius) * noise;
+    let noise = normalRandom(0, 1) * noiseLevel;
+    let label = getLabel(x)+noise;
+    points.push({x, y, label});
+  }
+  return points;
+}
+
+export function regressSawtooth(numSamples: number, noiseLevel: number):
   Example2D[] {
   let points: Example2D[] = [];
 
   let labelScale = d3.scale.linear()
     .domain([0, 2])
-    .range([1, 0])
+    .range([5, 0])
     .clamp(true);
 
   let gaussians = [
-    [-4, 2.5, 1],
-    [0, 2.5, -1],
-    [4, 2.5, 1],
-    [-4, -2.5, -1],
-    [0, -2.5, 1],
-    [4, -2.5, -1]
+    [-4, 1],
+    [0, -1],
+    [4, 1],
+    [-4, -1],
+    [0, 1],
+    [4, -1]
   ];
 
-  function getLabel(x, y) {
+  function getLabel(x: number) {
     // Choose the one that is maximum in abs value.
     let label = 0;
-    gaussians.forEach(([cx, cy, sign]) => {
-      let newLabel = sign * labelScale(dist({x, y}, {x: cx, y: cy}));
+    gaussians.forEach(([cx, sign]) => {
+      let newLabel = sign * labelScale(Math.abs(x-cx));
       if (Math.abs(newLabel) > Math.abs(label)) {
         label = newLabel;
       }
@@ -124,10 +223,10 @@ export function regressGaussian(numSamples: number, noise: number):
   let radius = 6;
   for (let i = 0; i < numSamples; i++) {
     let x = randUniform(-radius, radius);
-    let y = randUniform(-radius, radius);
-    let noiseX = randUniform(-radius, radius) * noise;
-    let noiseY = randUniform(-radius, radius) * noise;
-    let label = getLabel(x + noiseX, y + noiseY);
+    let y = 0;
+    // let noiseX = randUniform(-radius, radius) * noiseLevel;
+    let noise = normalRandom(0, 1) * noiseLevel;
+    let label = getLabel(x) + noise;
     points.push({x, y, label});
   };
   return points;

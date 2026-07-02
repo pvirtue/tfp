@@ -41,6 +41,7 @@ export class HeatMap {
   private color;
   private canvas;
   private svg;
+  private predictionPath;
 
   constructor(
       width: number, numSamples: number, xDomain: [number, number],
@@ -110,8 +111,18 @@ export class HeatMap {
       }).append("g")
         .attr("transform", `translate(${padding},${padding})`);
 
+      // Circles for points
       this.svg.append("g").attr("class", "train");
       this.svg.append("g").attr("class", "test");
+
+      // Prediction line
+      this.predictionPath = this.svg.append("path")
+        .attr("class", "line")
+        .style({
+          "fill": "none",
+          "stroke": "green",
+          "stroke-width": "2.5px"
+        });
     }
 
     if (this.settings.showAxes) {
@@ -149,6 +160,18 @@ export class HeatMap {
     this.updateCircles(this.svg.select("g.train"), points);
   }
 
+  updateLine(data: Example2D[]): void {
+    if (!this.settings.noSvg) {
+      // Adjust all the <path> elements (lines).
+      let getPathMap = () => {
+        return d3.svg.line<{x:number, label:number}>()
+        .x(d => this.xScale(d.x))
+        .y(d => this.yScale(d.label));
+      };
+      this.predictionPath.datum(data).attr("d", getPathMap());
+    }
+  }
+
   updateBackground(data: number[][], discretize: boolean): void {
     let dx = data[0].length;
     let dy = data.length;
@@ -176,7 +199,7 @@ export class HeatMap {
         image.data[++p] = 160;
       }
     }
-    context.putImageData(image, 0, 0);
+    // context.putImageData(image, 0, 0);
   }
 
   private updateCircles(container, points: Example2D[]) {
@@ -185,7 +208,7 @@ export class HeatMap {
     let yDomain = this.yScale.domain();
     points = points.filter(p => {
       return p.x >= xDomain[0] && p.x <= xDomain[1]
-        && p.y >= yDomain[0] && p.y <= yDomain[1];
+        && p.label >= yDomain[0] && p.label <= yDomain[1];
     });
 
     // Attach data to initially empty selection.
@@ -198,7 +221,7 @@ export class HeatMap {
     selection
       .attr({
         cx: (d: Example2D) => this.xScale(d.x),
-        cy: (d: Example2D) => this.yScale(d.y),
+        cy: (d: Example2D) => this.yScale(d.label),
       })
       .style("fill", d => this.color(d.label));
 

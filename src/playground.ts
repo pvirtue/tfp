@@ -48,7 +48,7 @@ function scrollTween(offset) {
 }
 
 const RECT_SIZE = 30;
-const BIAS_SIZE = 5;
+const BIAS_SIZE = 8;
 const NUM_SAMPLES_CLASSIFY = 500;
 const NUM_SAMPLES_REGRESS = 1200;
 const DENSITY = 100;
@@ -58,18 +58,12 @@ enum HoverType {
 }
 
 interface InputFeature {
-  f: (x: number, y: number) => number;
+  f: (x: number) => number;
   label?: string;
 }
 
 let INPUTS: {[name: string]: InputFeature} = {
-  "x": {f: (x, y) => x, label: "X_1"},
-  "y": {f: (x, y) => y, label: "X_2"},
-  "xSquared": {f: (x, y) => x * x, label: "X_1^2"},
-  "ySquared": {f: (x, y) => y * y,  label: "X_2^2"},
-  "xTimesY": {f: (x, y) => x * y, label: "X_1X_2"},
-  "sinX": {f: (x, y) => Math.sin(x), label: "sin(X_1)"},
-  "sinY": {f: (x, y) => Math.sin(y), label: "sin(X_2)"},
+  "x": {f: (x) => x, label: "X_1"}
 };
 
 let HIDABLE_CONTROLS = [
@@ -151,6 +145,7 @@ state.getHiddenProps().forEach(prop => {
 });
 
 let boundary: {[id: string]: number[][]} = {};
+let predictionPoints: {[id: string]: Example2D[]} = {};
 let selectedNodeId: string = null;
 // Plot the heatmap.
 let xDomain: [number, number] = [-6, 6];
@@ -488,7 +483,10 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
         updateHoverCard(HoverType.BIAS, node, d3.mouse(container.node()));
       }).on("mouseleave", function() {
         updateHoverCard(null);
-      });
+      })
+      .style("stroke", "black")
+      .style("stroke-width", 1)
+    ;
   }
 
   // Draw the node's canvas.
@@ -508,6 +506,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       nodeGroup.classed("hovered", true);
       updateDecisionBoundary(network, false);
       heatMap.updateBackground(boundary[nodeId], state.discretize);
+      heatMap.updateLine(predictionPoints[nodeId]);
     })
     .on("mouseleave", function() {
       selectedNodeId = null;
@@ -516,6 +515,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       updateDecisionBoundary(network, false);
       heatMap.updateBackground(boundary[nn.getOutputNode(network).id],
           state.discretize);
+      heatMap.updateLine(predictionPoints[nn.getOutputNode(network).id]);
     });
   if (isInput) {
     div.on("click", function() {
@@ -529,7 +529,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
     div.classed(activeOrNotClass, true);
   }
   let nodeHeatMap = new HeatMap(RECT_SIZE, DENSITY / 10, xDomain,
-      xDomain, div, {noSvg: true});
+      xDomain, div, {noSvg: false});
   div.datum({heatmap: nodeHeatMap, id: nodeId});
 
 }
@@ -796,13 +796,17 @@ function drawLink(
 function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
   if (firstTime) {
     boundary = {};
+    predictionPoints = {};
     nn.forEachNode(network, true, node => {
       boundary[node.id] = new Array(DENSITY);
+      predictionPoints[node.id] = new Array(DENSITY);
     });
     // Go through all predefined inputs.
     for (let nodeId in INPUTS) {
       boundary[nodeId] = new Array(DENSITY);
+      predictionPoints[nodeId] = new Array(DENSITY);
     }
+
   }
   let xScale = d3.scale.linear().domain([0, DENSITY - 1]).range(xDomain);
   let yScale = d3.scale.linear().domain([DENSITY - 1, 0]).range(xDomain);
@@ -826,11 +830,14 @@ function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
       nn.forwardProp(network, input);
       nn.forEachNode(network, true, node => {
         boundary[node.id][i][j] = node.output;
+        predictionPoints[node.id][i] = {x,y,label:node.output};
       });
       if (firstTime) {
         // Go through all predefined inputs.
         for (let nodeId in INPUTS) {
-          boundary[nodeId][i][j] = INPUTS[nodeId].f(x, y);
+          let label: number = INPUTS[nodeId].f(x);
+          boundary[nodeId][i][j] = label;
+          predictionPoints[nodeId][i] = {x,y,label};
         }
       }
     }
@@ -858,12 +865,14 @@ function updateUI(firstStep = false) {
   let selectedId = selectedNodeId != null ?
       selectedNodeId : nn.getOutputNode(network).id;
   heatMap.updateBackground(boundary[selectedId], state.discretize);
+  heatMap.updateLine(predictionPoints[selectedId])
 
   // Update all decision boundaries.
   d3.select("#network").selectAll("div.canvas")
       .each(function(data: {heatmap: HeatMap, id: string}) {
     data.heatmap.updateBackground(reduceMatrix(boundary[data.id], 10),
         state.discretize);
+    data.heatmap.updateLine(predictionPoints[data.id]);
   });
 
   function zeroPad(n: number): string {
@@ -900,7 +909,7 @@ function constructInput(x: number, y: number): number[] {
   let input: number[] = [];
   for (let inputName in INPUTS) {
     if (state[inputName]) {
-      input.push(INPUTS[inputName].f(x, y));
+      input.push(INPUTS[inputName].f(x));
     }
   }
   return input;
@@ -994,13 +1003,14 @@ function drawDatasetThumbnails() {
   function renderThumbnail(canvas, dataGenerator) {
     let w = 100;
     let h = 100;
+    console.log('Canvas:', canvas)
     canvas.setAttribute("width", w);
     canvas.setAttribute("height", h);
     let context = canvas.getContext("2d");
     let data = dataGenerator(200, 0);
     data.forEach(function(d) {
       context.fillStyle = colorScale(d.label);
-      context.fillRect(w * (d.x + 6) / 12, h * (d.y + 6) / 12, 4, 4);
+      context.fillRect(w * (d.x + 6) / 12, h * (-d.label + 6) / 12, 4, 4);
     });
     d3.select(canvas.parentNode).style("display", null);
   }

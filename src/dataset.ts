@@ -132,7 +132,13 @@ export function regressTwoClassDataTwo(numSamples: number, noise: number):
   return points;
 }
 
-export function regressCarData(numSamples: number, noise: number):
+/**
+ * Fixed teaching dataset "Regression 1": car price vs. mileage.
+ * Eight raw (mileage, price) points, rescaled into the [-6, 6] plot window.
+ * numSamples and noise are ignored; the points are listed twice so that both
+ * the train and test split get full coverage.
+ */
+export function regression1(numSamples: number, noise: number):
   Example2D[] {
   let points: Example2D[] = [];
   let x_array = [25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000,
@@ -146,7 +152,40 @@ export function regressCarData(numSamples: number, noise: number):
     let label = label_array[i]*2/10000;
     points.push({x, y, label});
   }
-  console.log(points);
+  return points;
+}
+
+/**
+ * Fixed teaching dataset "Regression 8": a RELU-shaped target.
+ * The raw points span x in [-9.5, 9.9] and label in [-16.8, 4.4], so each axis
+ * is rescaled (keeping 0 -> 0) to fit inside the [-6, 6] plot window.
+ * numSamples and noise are ignored; the points are listed twice so that both
+ * the train and test split get full coverage.
+ */
+export function regression8(numSamples: number, noise: number):
+  Example2D[] {
+  // Raw (x, label) points from regression8.csv.
+  let rawPoints: [number, number][] = [
+    [-8, 0], [4.2, -5.4], [-7.7, 0], [-6.1, 0], [8.7, -14.4],
+    [3.4, -3.8], [9, -15], [-5, 0], [-6.1, 0], [8.3, -13.6],
+    [9.9, -16.8], [-2.3, 1.4], [-4.4, 0], [-1.4, 3.2], [1, 1],
+    [-4.8, 0], [-6.5, 0], [-9.5, 0], [-6.3, 0], [4.6, -6.2],
+    [5.5, -8], [-6.2, 0], [-0.8, 4.4], [-8.3, 0], [4.1, -5.2],
+    [3.2, -3.4], [1.8, -0.6], [-9.2, 0], [-2.9, 0.2], [2.7, -2.4]
+  ];
+  // Scale factors that map the raw ranges into the [-6, 6] plot window.
+  let xScale = 0.55;
+  let labelScale = 0.32;
+  let points: Example2D[] = [];
+  // List the points twice so both the train and test split get full coverage.
+  for (let pass = 0; pass < 2; pass++) {
+    rawPoints.forEach(([rawX, rawLabel]) => {
+      let x = rawX * xScale;
+      let y = 0;
+      let label = rawLabel * labelScale;
+      points.push({x, y, label});
+    });
+  }
   return points;
 }
 

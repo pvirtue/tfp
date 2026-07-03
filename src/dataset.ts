@@ -133,12 +133,12 @@ export function regressTwoClassDataTwo(numSamples: number, noise: number):
 }
 
 /**
- * Fixed teaching dataset "Regression 1": car price vs. mileage.
+ * Fixed teaching dataset "Car": car price vs. mileage.
  * Eight raw (mileage, price) points, rescaled into the [-6, 6] plot window.
  * numSamples and noise are ignored; the points are listed twice so that both
  * the train and test split get full coverage.
  */
-export function regression1(numSamples: number, noise: number):
+export function regressCarData(numSamples: number, noise: number):
   Example2D[] {
   let points: Example2D[] = [];
   let x_array = [25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000,
@@ -156,13 +156,14 @@ export function regression1(numSamples: number, noise: number):
 }
 
 /**
- * Fixed teaching dataset "Regression 8": a RELU-shaped target.
+ * Fixed teaching dataset "Three neuron": a RELU-shaped target (from
+ * regression8.csv) that a small network can fit with a few neurons.
  * The raw points span x in [-9.5, 9.9] and label in [-16.8, 4.4], so each axis
  * is rescaled (keeping 0 -> 0) to fit inside the [-6, 6] plot window.
  * numSamples and noise are ignored; the points are listed twice so that both
  * the train and test split get full coverage.
  */
-export function regression8(numSamples: number, noise: number):
+export function regressThreeNeuron(numSamples: number, noise: number):
   Example2D[] {
   // Raw (x, label) points from regression8.csv.
   let rawPoints: [number, number][] = [

@@ -48,7 +48,8 @@ export let regDatasets: {[key: string]: dataset.DataGenerator} = {
   "reg-quad": dataset.regressQuadratic,
   "reg-saw": dataset.regressSawtooth,
   "reg-class": dataset.regressTwoClassData,
-  "reg-car": dataset.regressCarData
+  "reg-car": dataset.regressCarData,
+  "three-neuron": dataset.regressThreeNeuron
 };
 
 export function getKeyFromValue(obj: any, value: any): string {

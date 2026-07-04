@@ -930,6 +930,12 @@ function oneStep(): void {
       nn.updateWeights(network, state.learningRate, state.regularizationRate);
     }
   });
+  // Flush any leftover partial batch, so that datasets smaller than the
+  // batch size still learn (updateWeights averages over the accumulated
+  // gradients and is a no-op when none are accumulated).
+  if (trainData.length % state.batchSize !== 0) {
+    nn.updateWeights(network, state.learningRate, state.regularizationRate);
+  }
   // Compute the loss.
   lossTrain = getLoss(network, trainData);
   lossTest = getLoss(network, testData);

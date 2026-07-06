@@ -427,22 +427,15 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       "transform": `translate(${x},${y})`
     });
 
-  // Draw the main rectangle.
-  nodeGroup.append("rect")
-    .attr({
-      x: 0,
-      y: 0,
-      width: RECT_SIZE,
-      height: RECT_SIZE,
-    });
-  let activeOrNotClass = state[nodeId] ? "active" : "inactive";
   if (isInput) {
+    // Inputs are features, not neurons: draw only the label next to where
+    // the links start, with no box, bias or thumbnail.
     let label = INPUTS[nodeId].label != null ?
         INPUTS[nodeId].label : nodeId;
     // Draw the input label.
     let text = nodeGroup.append("text").attr({
       class: "main-label",
-      x: -10,
+      x: RECT_SIZE - 5,
       y: RECT_SIZE / 2, "text-anchor": "end"
     });
     if (/[_^]/.test(label)) {
@@ -468,26 +461,33 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
     } else {
       text.append("tspan").text(label);
     }
-    nodeGroup.classed(activeOrNotClass, true);
+    return;
   }
-  if (!isInput) {
-    // Draw the node's bias.
-    nodeGroup.append("rect")
-      .attr({
-        id: `bias-${nodeId}`,
-        x: -BIAS_SIZE - 2,
-        y: RECT_SIZE - BIAS_SIZE + 3,
-        width: BIAS_SIZE,
-        height: BIAS_SIZE,
-      }).on("mouseenter", function() {
-        updateHoverCard(HoverType.BIAS, node, d3.mouse(container.node()));
-      }).on("mouseleave", function() {
-        updateHoverCard(null);
-      })
-      .style("stroke", "black")
-      .style("stroke-width", 1)
-    ;
-  }
+
+  // Draw the main rectangle.
+  nodeGroup.append("rect")
+    .attr({
+      x: 0,
+      y: 0,
+      width: RECT_SIZE,
+      height: RECT_SIZE,
+    });
+  // Draw the node's bias.
+  nodeGroup.append("rect")
+    .attr({
+      id: `bias-${nodeId}`,
+      x: -BIAS_SIZE - 2,
+      y: RECT_SIZE - BIAS_SIZE + 3,
+      width: BIAS_SIZE,
+      height: BIAS_SIZE,
+    }).on("mouseenter", function() {
+      updateHoverCard(HoverType.BIAS, node, d3.mouse(container.node()));
+    }).on("mouseleave", function() {
+      updateHoverCard(null);
+    })
+    .style("stroke", "black")
+    .style("stroke-width", 1)
+  ;
 
   // Draw the node's canvas.
   let div = d3.select("#network").insert("div", ":first-child")
@@ -517,17 +517,6 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
           state.discretize);
       heatMap.updateLine(predictionPoints[nn.getOutputNode(network).id]);
     });
-  if (isInput) {
-    div.on("click", function() {
-      state[nodeId] = !state[nodeId];
-      parametersChanged = true;
-      reset();
-    });
-    div.style("cursor", "pointer");
-  }
-  if (isInput) {
-    div.classed(activeOrNotClass, true);
-  }
   let nodeHeatMap = new HeatMap(RECT_SIZE, DENSITY / 10, xDomain,
       xDomain, div, {noSvg: false});
   div.datum({heatmap: nodeHeatMap, id: nodeId});
@@ -555,12 +544,14 @@ function drawNetwork(network: nn.Node[][]): void {
   let container = svg.append("g")
     .classed("core", true)
     .attr("transform", `translate(${padding},${padding})`);
-  // Draw the network layer by layer.
+  // Draw the network layer by layer. The inputs draw as just a label (no
+  // box), and the output box must stay left of the output column's plot, so
+  // the whole diagram is shifted left within [featureWidth, width - 3*RECT].
   let numLayers = network.length;
-  let featureWidth = 118;
+  let featureWidth = 60;
   let layerScale = d3.scale.ordinal<number, number>()
       .domain(d3.range(1, numLayers - 1))
-      .rangePoints([featureWidth, width - RECT_SIZE], 0.7);
+      .rangePoints([featureWidth, width - 3 * RECT_SIZE], 0.7);
   let nodeIndexScale = (nodeIndex: number) => nodeIndex * (RECT_SIZE + 25);
 
 
@@ -570,7 +561,7 @@ function drawNetwork(network: nn.Node[][]): void {
   let targetIdWithCallout = null;
 
   // Draw the input layer separately.
-  let cx = RECT_SIZE / 2 + 50;
+  let cx = RECT_SIZE / 2;
   let nodeIds = Object.keys(INPUTS);
   let maxY = nodeIndexScale(nodeIds.length);
   nodeIds.forEach((nodeId, i) => {
@@ -631,16 +622,15 @@ function drawNetwork(network: nn.Node[][]): void {
     }
   }
 
-  // Draw the output node separately.
-  cx = width + RECT_SIZE / 2;
+  // Draw the output node separately, far enough inside the svg's right edge
+  // that it clears the output column's plot (whose svg extends 20px left of
+  // the column to fit its axes).
+  cx = width - RECT_SIZE / 2 - 40;
   let node = network[numLayers - 1][0];
   let cy = nodeIndexScale(0) + RECT_SIZE / 2;
   node2coord[node.id] = {cx, cy};
   // Draw the output node's box, bias and thumbnail, like the other neurons.
   drawNode(cx, cy, node.id, false, container, node);
-  // The output node sits at the right edge, so widen the svg viewport to keep
-  // its box and bias from being clipped.
-  svg.attr("width", width + RECT_SIZE);
   // Draw links.
   for (let i = 0; i < node.inputLinks.length; i++) {
     let link = node.inputLinks[i];

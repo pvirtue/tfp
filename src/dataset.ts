@@ -135,16 +135,13 @@ export function regressTwoClassDataTwo(numSamples: number, noise: number):
 /**
  * Fixed teaching dataset "Car": car price vs. mileage.
  * Eight raw (mileage, price) points, rescaled into the [-6, 6] plot window.
- * numSamples and noise are ignored; the points are listed twice so that both
- * the train and test split get full coverage.
+ * numSamples and noise are ignored (see isFixedDataset).
  */
 export function regressCarData(numSamples: number, noise: number):
   Example2D[] {
   let points: Example2D[] = [];
-  let x_array = [25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000,
-    25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000];
-  let label_array = [23000, 28000, 22000, 22000, 12500, 5500, 5000, 4000,
-    23000, 28000, 22000, 22000, 12500, 5500, 5000, 4000];
+  let x_array = [25000, 34000, 45000, 70000, 93000, 110000, 125000, 160000];
+  let label_array = [23000, 28000, 22000, 22000, 12500, 5500, 5000, 4000];
   numSamples = label_array.length;
   for (let i = 0; i < numSamples; i++) {
     let x = x_array[i]*6/100000 - 5;
@@ -160,8 +157,7 @@ export function regressCarData(numSamples: number, noise: number):
  * regression8.csv) that a small network can fit with a few neurons.
  * The raw points span x in [-9.5, 9.9] and label in [-16.8, 4.4], so each axis
  * is rescaled (keeping 0 -> 0) to fit inside the [-6, 6] plot window.
- * numSamples and noise are ignored; the points are listed twice so that both
- * the train and test split get full coverage.
+ * numSamples and noise are ignored (see isFixedDataset).
  */
 export function regressThreeNeuron(numSamples: number, noise: number):
   Example2D[] {
@@ -178,16 +174,24 @@ export function regressThreeNeuron(numSamples: number, noise: number):
   let xScale = 0.55;
   let labelScale = 0.32;
   let points: Example2D[] = [];
-  // List the points twice so both the train and test split get full coverage.
-  for (let pass = 0; pass < 2; pass++) {
-    rawPoints.forEach(([rawX, rawLabel]) => {
-      let x = rawX * xScale;
-      let y = 0;
-      let label = rawLabel * labelScale;
-      points.push({x, y, label});
-    });
-  }
+  rawPoints.forEach(([rawX, rawLabel]) => {
+    let x = rawX * xScale;
+    let y = 0;
+    let label = rawLabel * labelScale;
+    points.push({x, y, label});
+  });
   return points;
+}
+
+/**
+ * Datasets that consist of a fixed set of points rather than random samples.
+ * They ignore their numSamples and noise arguments, every point is used for
+ * training, and the test set is a copy of the training set.
+ */
+let fixedDatasets: DataGenerator[] = [regressCarData, regressThreeNeuron];
+
+export function isFixedDataset(generator: DataGenerator): boolean {
+  return fixedDatasets.indexOf(generator) !== -1;
 }
 
 

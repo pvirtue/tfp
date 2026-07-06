@@ -25,7 +25,7 @@ import {
   getKeyFromValue,
   Problem
 } from "./state";
-import {Example2D, shuffle} from "./dataset";
+import {Example2D, shuffle, isFixedDataset} from "./dataset";
 import {AppendingLineChart} from "./linechart";
 import * as d3 from 'd3';
 
@@ -1075,6 +1075,22 @@ function hideControls() {
     .attr("href", window.location.href);
 }
 
+/**
+ * Shows or hides the controls that are meaningless for fixed datasets:
+ * the noise level and the train/test split (which also covers the test-loss
+ * readout, since the test set is just a copy of the training set).
+ * Controls permanently hidden through the "hide controls" feature stay hidden.
+ */
+function updateFixedDatasetControls(isFixed: boolean) {
+  let hiddenProps = state.getHiddenProps();
+  ["noise", "percTrainData"].forEach(prop => {
+    if (hiddenProps.indexOf(prop) !== -1) {
+      return;
+    }
+    d3.selectAll(`.ui-${prop}`).style("display", isFixed ? "none" : null);
+  });
+}
+
 function generateData(firstTime = false) {
   if (!firstTime) {
     // Change the seed.
@@ -1088,12 +1104,19 @@ function generateData(firstTime = false) {
   let generator = state.problem === Problem.CLASSIFICATION ?
       state.dataset : state.regDataset;
   let data = generator(numSamples, state.noise / 100);
-  // Shuffle the data in-place.
-  shuffle(data);
-  // Split into train and test data.
-  let splitIndex = Math.floor(data.length * state.percTrainData / 100);
-  trainData = data.slice(0, splitIndex);
-  testData = data.slice(splitIndex);
+  if (isFixedDataset(generator)) {
+    // Fixed datasets train on every point; the test set is a copy.
+    trainData = data;
+    testData = data.slice();
+  } else {
+    // Shuffle the data in-place.
+    shuffle(data);
+    // Split into train and test data.
+    let splitIndex = Math.floor(data.length * state.percTrainData / 100);
+    trainData = data.slice(0, splitIndex);
+    testData = data.slice(splitIndex);
+  }
+  updateFixedDatasetControls(isFixedDataset(generator));
   heatMap.updatePoints(trainData);
   heatMap.updateTestPoints(state.showTestData ? testData : []);
 }
